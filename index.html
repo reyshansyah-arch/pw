@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Manajemen Pengguna - IndexedDB CRUD</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #0f172a;
+            --bg: #eef4ff;
+            --surface: rgba(255, 255, 255, 0.86);
+            --surface-solid: #ffffff;
+            --text: #0f172a;
+            --muted: #64748b;
+            --border: rgba(148, 163, 184, 0.28);
+            --shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+            --shadow-soft: 0 10px 25px rgba(15, 23, 42, 0.08);
+            --radius: 22px;
+            --radius-sm: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        html, body {
+            min-height: 100%;
+        }
+
+        body {
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(37, 99, 235, 0.20), transparent 35%),
+                radial-gradient(circle at top right, rgba(14, 165, 233, 0.18), transparent 30%),
+                linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+            padding: 28px;
+        }
+
+        .page-shell {
+            max-width: 1320px;
+            margin: 0 auto;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, rgba(255,255,255,0.92), rgba(255,255,255,0.78));
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255,255,255,0.55);
+            box-shadow: var(--shadow);
+            border-radius: 28px;
+            padding: 30px 32px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            inset: auto -70px -80px auto;
+            width: 220px;
+            height: 220px;
+            background: radial-gradient(circle, rgba(37, 99, 235, 0.18), transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-badge {
+            width: 54px;
+            height: 54px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, var(--primary), #06b6d4);
+            display: grid;
+            place-items: center;
+            color: white;
+            font-size: 1.4rem;
+            box-shadow: 0 12px 24px rgba(37, 99, 235, 0.30);
+            flex: 0 0 auto;
+        }
+
+        .hero h1 {
+            font-size: clamp(1.5rem, 2.6vw, 2.5rem);
+            line-height: 1.2;
+            color: var(--secondary);
+            margin-bottom: 6px;
+        }
+
+        .hero p {
+            color: var(--muted);
+            font-size: 0.98rem;
+        }
+
+        .pill-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .pill {
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(37, 99, 235, 0.08);
+            color: var(--primary-dark);
+            border: 1px solid rgba(37, 99, 235, 0.10);
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1.65fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 980px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-soft);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px 22px 14px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+            background: linear-gradient(180deg, rgba(248, 250, 252, 0.65), rgba(255,255,255,0.2));
+        }
+
+        .card-header h2 {
+            font-size: 1.12rem;
+            color: var(--secondary);
+            margin-bottom: 6px;
+        }
+
+        .card-header p {
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .card-body {
+            padding: 22px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.92rem;
+            color: #1e293b;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.9rem 1rem;
+            border: 1px solid #dbe4f0;
+            border-radius: 14px;
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.95);
+            color: var(--text);
+            outline: none;
+            transition: all 0.2s ease;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+        }
+
+        .form-control::placeholder {
+            color: #94a3b8;
+        }
+
+        .form-control:focus {
+            border-color: rgba(37, 99, 235, 0.75);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+            transform: translateY(-1px);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 22px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 14px;
+            padding: 0.85rem 1rem;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.95rem;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, opacity 0.18s ease;
+            flex: 1;
+            letter-spacing: 0.2px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #3b82f6);
+            color: white;
+            box-shadow: 0 12px 22px rgba(37, 99, 235, 0.24);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-dark), #2563eb);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #f97316);
+            color: white;
+            box-shadow: 0 12px 22px rgba(239, 68, 68, 0.18);
+        }
+
+        .btn-danger:hover {
+            opacity: 0.95;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #0f172a;
+            box-shadow: 0 10px 18px rgba(148, 163, 184, 0.16);
+        }
+
+        .btn-secondary:hover {
+            background: #dbe4f0;
+        }
+
+        .table-card .card-body {
+            padding: 0;
+        }
+
+        .table-container {
+            overflow: auto;
+            max-height: 72vh;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            text-align: left;
+            background: linear-gradient(180deg, #f8fafc, #eef4ff);
+            color: #0f172a;
+            font-weight: 800;
+            font-size: 0.93rem;
+            padding: 16px 18px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+        }
+
+        tbody td {
+            padding: 15px 18px;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+            color: #334155;
+            font-size: 0.95rem;
+        }
+
+        tbody tr {
+            transition: background 0.15s ease, transform 0.15s ease;
+            cursor: pointer;
+            background: rgba(255,255,255,0.68);
+        }
+
+        tbody tr:nth-child(even) {
+            background: rgba(248, 250, 252, 0.9);
+        }
+
+        tbody tr:hover {
+            background: rgba(219, 234, 254, 0.75);
+        }
+
+        tbody tr.selected {
+            background: linear-gradient(90deg, rgba(37, 99, 235, 0.16), rgba(96, 165, 250, 0.12));
+        }
+
+        .empty-row td {
+            text-align: center;
+            color: var(--muted);
+            padding: 30px 18px;
+        }
+
+        .footer-note {
+            margin-top: 18px;
+            text-align: center;
+            color: #64748b;
+            font-size: 0.88rem;
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 16px;
+            }
+
+            .hero {
+                padding: 22px 20px;
+                border-radius: 22px;
+            }
+
+            .card-header, .card-body {
+                padding-left: 18px;
+                padding-right: 18px;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-shell">
+        <div class="hero">
+            <div class="hero-top">
+                <div class="brand">
+                    <div class="brand-badge">DB</div>
+                    <div>
+                        <h1>Manajemen Database Pengguna</h1>
+                        <p>CRUD dinamis berbasis IndexedDB dengan tampilan yang lebih elegan dan responsif.</p>
+                    </div>
+                </div>
+                <div class="pill-group">
+                    <div class="pill">Modern UI</div>
+                    <div class="pill">Responsive</div>
+                    <div class="pill">IndexedDB</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="card">
+                <div class="card-header">
+                    <h2 id="form-title">Tambah / Edit Pengguna</h2>
+                    <p>Isi data di bawah untuk menyimpan, memperbarui, atau menghapus pengguna.</p>
+                </div>
+                <div class="card-body">
+                    <form id="dynamic-form" autocomplete="off">
+                        <div id="form-fields"></div>
+
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-primary" id="btn-save">Simpan</button>
+                            <button type="button" class="btn btn-danger" id="btn-delete" style="display: none;">Hapus</button>
+                            <button type="button" class="btn btn-secondary" id="btn-reset">Reset</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card table-card">
+                <div class="card-header">
+                    <h2>Daftar Pengguna</h2>
+                    <p>Klik baris data untuk mengedit atau menghapus.</p>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table id="dynamic-table">
+                            <thead>
+                                <tr id="table-header"></tr>
+                            </thead>
+                            <tbody id="table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-note">Tampilan dibuat lebih rapi, lembut, dan profesional tanpa mengubah fungsi utama aplikasi.</div>
+    </div>
+
+<script>
+/**
+ * 1. KONFIGURASI SKEMA DATA (Scalable & Consistent)
+ * Cukup ubah/tambah objek di sini untuk memodifikasi kolom aplikasi secara global.
+ */
+const SchemaConfig = [
+    { name: 'id', label: 'ID Pengguna', type: 'text', isKey: true, visible: true, placeholder: 'Contoh: USR001' },
+    { name: 'nama', label: 'Nama Lengkap', type: 'text', isKey: false, visible: true, placeholder: 'Masukkan nama...' },
+    { name: 'sandi', label: 'Kata Sandi', type: 'password', isKey: false, visible: false, placeholder: 'Masukkan sandi...' },
+    { name: 'status', label: 'Status', type: 'select', options: ['Aktif', 'Nonaktif'], isKey: false, visible: true }
+];
+
+/**
+ * 2. MODUL DATABASE (IndexedDB Wrapper)
+ */
+class IndexedDBManager {
+    constructor(dbName, storeName) {
+        this.dbName = dbName;
+        this.storeName = storeName;
+        this.db = null;
+    }
+
+    init() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.dbName, 1);
+
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                const keyField = SchemaConfig.find(f => f.isKey).name;
+                if (!db.objectStoreNames.contains(this.storeName)) {
+                    db.createObjectStore(this.storeName, { keyPath: keyField });
+                }
+            };
+
+            request.onsuccess = (e) => {
+                this.db = e.target.result;
+                resolve();
+            };
+
+            request.onerror = (e) => reject(e.target.error);
+        });
+    }
+
+    executeTx(mode, callback) {
+        const tx = this.db.transaction(this.storeName, mode);
+        const store = tx.objectStore(this.storeName);
+        return callback(store);
+    }
+
+    getAll() {
+        return new Promise((resolve) => {
+            this.executeTx('readonly', (store) => {
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+            });
+        });
+    }
+
+    save(data) {
+        return new Promise((resolve, reject) => {
+            this.executeTx('readwrite', (store) => {
+                const request = store.put(data);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        });
+    }
+
+    delete(key) {
+        return new Promise((resolve) => {
+            this.executeTx('readwrite', (store) => {
+                const request = store.delete(key);
+                request.onsuccess = () => resolve();
+            });
+        });
+    }
+}
+
+/**
+ * 3. MODUL APLIKASI (UI & Event Controller)
+ */
+class AppController {
+    constructor(schema, dbManager) {
+        this.schema = schema;
+        this.db = dbManager;
+        this.keyField = schema.find(f => f.isKey).name;
+        this.isEditMode = false;
+
+        this.formFieldsContainer = document.getElementById('form-fields');
+        this.tableHeader = document.getElementById('table-header');
+        this.tableBody = document.getElementById('table-body');
+        this.form = document.getElementById('dynamic-form');
+        this.btnDelete = document.getElementById('btn-delete');
+        this.btnReset = document.getElementById('btn-reset');
+    }
+
+    async start() {
+        await this.db.init();
+        this.renderFormFields();
+        this.renderTableHeader();
+        this.initEvents();
+        this.refreshTable();
+    }
+
+    renderFormFields() {
+        let html = '';
+        this.schema.forEach(field => {
+            html += `<div class="form-group">
+                <label for="field-${field.name}">${field.label}</label>`;
+
+            if (field.type === 'select') {
+                html += `<select id="field-${field.name}" name="${field.name}" class="form-control" required>`;
+                field.options.forEach(opt => html += `<option value="${opt}">${opt}</option>`);
+                html += `</select>`;
+            } else {
+                html += `<input type="${field.type}" id="field-${field.name}" name="${field.name}" 
+                          class="form-control" placeholder="${field.placeholder || ''}" required>`;
+            }
+            html += `</div>`;
+        });
+        this.formFieldsContainer.innerHTML = html;
+    }
+
+    renderTableHeader() {
+        const visibleFields = this.schema.filter(f => f.visible);
+        this.tableHeader.innerHTML = visibleFields.map(f => `<th>${f.label}</th>`).join('');
+    }
+
+    async refreshTable() {
+        const dataList = await this.db.getAll();
+        const visibleFields = this.schema.filter(f => f.visible);
+
+        if (dataList.length === 0) {
+            this.tableBody.innerHTML = `<tr class="empty-row"><td colspan="${visibleFields.length}">Tidak ada data.</td></tr>`;
+            return;
+        }
+
+        this.tableBody.innerHTML = dataList.map(data => {
+            const rowCells = visibleFields.map(field => `<td>${data[field.name] || ''}</td>`).join('');
+            return `<tr data-id="${data[this.keyField]}">${rowCells}</tr>`;
+        }).join('');
+    }
+
+    fillForm(data) {
+        this.isEditMode = true;
+        this.schema.forEach(field => {
+            const input = document.getElementById(`field-${field.name}`);
+            if (input) {
+                input.value = data[field.name] || '';
+                if (field.isKey) input.readOnly = true;
+            }
+        });
+        this.btnDelete.style.display = 'block';
+    }
+
+    resetForm() {
+        this.isEditMode = false;
+        this.form.reset();
+
+        const keyInput = document.getElementById(`field-${this.keyField}`);
+        if (keyInput) keyInput.readOnly = false;
+
+        this.btnDelete.style.display = 'none';
+        document.querySelectorAll('#table-body tr').forEach(tr => tr.classList.remove('selected'));
+    }
+
+    initEvents() {
+        this.form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(this.form);
+            const dataObject = Object.fromEntries(formData.entries());
+
+            try {
+                await this.db.save(dataObject);
+                this.resetForm();
+                this.refreshTable();
+            } catch (err) {
+                alert("Gagal menyimpan data: " + err.message);
+            }
+        });
+
+        this.tableBody.addEventListener('click', async (e) => {
+            const targetRow = e.target.closest('tr');
+            if (!targetRow || !targetRow.dataset.id) return;
+
+            document.querySelectorAll('#table-body tr').forEach(tr => tr.classList.remove('selected'));
+            targetRow.classList.add('selected');
+
+            const idValue = targetRow.dataset.id;
+            const allData = await this.db.getAll();
+            const selectedData = allData.find(d => d[this.keyField] === idValue);
+
+            if (selectedData) {
+                this.fillForm(selectedData);
+            }
+        });
+
+        this.btnDelete.addEventListener('click', async () => {
+            const keyInput = document.getElementById(`field-${this.keyField}`);
+            if (keyInput && confirm('Apakah Anda yakin ingin menghapus data ini?')) {
+                await this.db.delete(keyInput.value);
+                this.resetForm();
+                this.refreshTable();
+            }
+        });
+
+        this.btnReset.addEventListener('click', () => this.resetForm());
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const dbManager = new IndexedDBManager('AppDatabase', 'PenggunaStore');
+    const app = new AppController(SchemaConfig, dbManager);
+    app.start();
+});
+</script>
+</body>
+</html>
